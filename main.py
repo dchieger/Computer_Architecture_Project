@@ -62,7 +62,7 @@ class CacheSimulator:
         print(f"Implementation Memory Size: {self.implementation_memory} bytes")
 
         cost = self.implementation_memory * 0.15
-        print(f"Cost: ${cost:.2f}")
+        print(f"Cost: ${cost}")
 
     def print_physical_memory_calculated_values(self):
         print("\n\n***** Physical Memory Calculated Values ***** \n\n")
