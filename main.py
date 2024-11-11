@@ -149,7 +149,7 @@ def main():
     if len(args.trace_files) > 3:
         raise ValueError("Maximum of 3 trace files allowed")
 
-    print("Cache Simulator CS 3853 Fall 2024 – Group #??\n")
+    print("\nCache Simulator CS 3853 Fall 2024 – Group #06\n")
 
     simulator = CacheSimulator(args)
     simulator.print_cache_input_parameters()
