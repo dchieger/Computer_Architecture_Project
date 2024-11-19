@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 import random
 import math
+import re
 
 
 @dataclass
@@ -56,10 +57,12 @@ class Cache:
         ]
 
         # Statistics
-        self.reads = 0
-        self.writes = 0
         self.hits = 0
         self.misses = 0
+        self.compulsory_misses = 0
+        self.conflict_misses = 0
+        self.cycle_count = 0
+        self.instruction_count = 0
 
         # Calculate address bits
         self.offset_bits = int(math.log2(self.block_size))
@@ -77,20 +80,23 @@ class Cache:
         """Process a cache access. Returns True for hit, False for miss."""
         tag, index, _ = self.get_address_components(address)
 
-        if is_write:
-            self.writes += 1
-        else:
-            self.reads += 1
-
         entry = self.sets[index].find_entry(tag)
         if entry is not None:
             self.hits += 1
+            self.cycle_count += 1
             if is_write:
                 entry.dirty = True
             return True
 
         self.misses += 1
         entry = self.sets[index].get_replacement_entry(self.round_robin)
+
+        if entry.valid is False:
+            self.compulsory_misses += 1
+        elif entry.valid is True and entry.tag != tag:
+            self.conflict_misses += 1
+        entry.dirty = is_write
+
         entry.valid = True
         entry.tag = tag
         entry.dirty = is_write
@@ -98,17 +104,29 @@ class Cache:
 
     def print_stats(self):
         """Print cache statistics."""
-        total_accesses = self.reads + self.writes
+        total_accesses = self.hits + self.misses
         hit_rate = (self.hits / total_accesses * 100) if total_accesses > 0 else 0
 
-        print("\nCache Statistics:")
-        print(f"Total Accesses: {total_accesses}")
-        print(f"Reads: {self.reads}")
-        print(f"Writes: {self.writes}")
-        print(f"Hits: {self.hits}")
-        print(f"Misses: {self.misses}")
-        print(f"Hit Rate: {hit_rate:.2f}%")
-        print(f"Miss Rate: {100-hit_rate:.2f}%")
+        print("\n***** CACHE SIMULATION RESULTS *****\n")
+        # Double check addresses
+        print(f"Total Cache Accesses:\t{total_accesses}\t({0} addresses)")
+        # Double check math on this, copilot did it
+        print(f"Instruction Bytes:\t{self.hits * 4}\tSrcDst Bytes:\t{self.hits * 8}")
+        print(f"Cache Hits:\t\t{self.hits}")
+        print(f"Cahce Misses:\t\t{self.misses}")
+        print(f"Compulsory Misses:\t{self.compulsory_misses}")
+        print(f"Conflict Misses:\t{self.conflict_misses}")
+        print("\n***** ***** CACHE HIT & MISS RATE: ***** *****\n")
+        print(f"Hit Rate:\t\t{hit_rate:.2f}%")
+        print(f"Miss Rate:\t\t{100-hit_rate:.2f}%")
+        print(
+            f"CPI:\t\t\t{1 + (self.cycle_count / self.instruction_count):.2f} Cycles/Instruction ({self.instruction_count})"
+        )
+        # print(
+        #     f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + self.overhead
+        #     _per_block)) / 1024}KB"
+        # )
+        # print(f"Unused Cache Blocks:\t{self.num_sets - self.misses - self.hits}")
 
 
 class PageTable:
@@ -210,21 +228,31 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     try:
         with open(filename, "r") as f:
             for line in f:
+                if line == "\n":
+                    continue
                 # Assuming trace format is: "address operation"
                 # Modify this based on your actual trace file format
-                parts = line.strip().split()
-                if len(parts) >= 2:
-                    address = int(parts[0], 16)  # Assuming hex address
-                    operation = parts[1].upper()
+                else:
+                    parts = line.strip().split("\n")
+                    line = parts[0]
 
-                    # Translate virtual to physical address
-                    phys_addr = page_table.translate(address)
-                    if phys_addr is None:
-                        print(f"Page fault at address {hex(address)}")
-                        continue
+                    eip = re.search(r"EIP \(([0-9]+)\):\s([a-zA-Z0-9]+)", line)
 
-                    # Access cache
-                    cache.access(phys_addr, operation == "W")
+                    if eip:
+                        len = eip.group(1)
+                        register = eip.group(2)
+                        cache.cycle_count += 2
+                        cache.instruction_count += 1
+                    else:
+                        dataLine = re.search(
+                            r"dstM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+\s*srcM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+",
+                            line,
+                        )
+                        write = int(dataLine.group(1), 16)
+                        read = int(dataLine.group(2), 16)
+                        cache.access(write, True)
+                        cache.access(read, False)
+
     except FileNotFoundError:
         print(f"Error: Could not open trace file {filename}")
     except Exception as e:
