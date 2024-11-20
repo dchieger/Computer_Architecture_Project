@@ -28,7 +28,7 @@ class CacheSimulator:
         self.overhead_per_block = self.valid_bit + self.dirty_bit + self.tag_bits
         self.total_overhead = (
             self.overhead_per_block * self.total_blocks
-        ) // 8  # Convert to bytes
+        ) // 8  # Convert to bytes # Need to divide by 1024 in code
 
         # Calculate implementation memory size
         self.implementation_memory = self.cache_size + self.total_overhead
