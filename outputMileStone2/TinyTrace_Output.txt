@@ -1,0 +1,21 @@
+python3 cache_simulator.py -s 512 -b 16 -a 4 -r rr -p 1024 -u 75 -n 100 -f TinyTrace.trc
+
+Processing trace file 1: TinyTrace.trc
+
+***** CACHE SIMULATION RESULTS *****
+
+Total Cache Accesses:   18      (0 addresses)
+Instruction Bytes:      68      SrcDst Bytes:   136
+Cache Hits:             17
+Cahce Misses:           1
+Compulsory Misses:      1
+Conflict Misses:        0
+
+***** ***** CACHE HIT & MISS RATE: ***** *****
+
+Hit Rate:               94.44%
+Miss Rate:              5.56%
+CPI:                    4.33 Cycles/Instruction (9)
+Unused Cache Space:     615.98 KB / 512.00KB
+Unused Cache Blocks:    32767 / 32768
+ chrus   master  …  Downloads  CachingProject  Computer_Architecture_Project  

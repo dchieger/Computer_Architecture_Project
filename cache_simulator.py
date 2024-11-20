@@ -48,24 +48,25 @@ class Cache:
         self.associativity = config.associativity
         self.round_robin = config.replacement_policy == "rr"
         self.cache_size = config.cache_size
-        self.total_rows = (self.cache_size * 1024) // (
-            self.block_size * self.associativity
-        )
+        self.total_rows = (self.cache_size * 1024) // (self.block_size * self.associativity)
         self.total_blocks = self.total_rows * self.associativity
 
         # Calculate number of sets
-        self.num_sets = (self.cache_size) // (self.block_size * self.associativity)
+        self.num_sets = (self.cache_size)  // (
+            self.block_size * self.associativity
+        )
         self.sets = [
             CacheSet(self.associativity, self.block_size) for _ in range(self.num_sets)
         ]
 
         # Statistics
+        
 
         # Calculate address bits
         self.offset_bits = int(math.log2(self.block_size))
         self.index_bits = int(math.log2(self.total_rows))
         self.tag_bits = 32 - self.offset_bits - self.index_bits
-
+       
         self.valid_bit = 1
         self.dirty_bit = 1
         self.overhead_per_block = self.valid_bit + self.dirty_bit + self.tag_bits
@@ -78,6 +79,8 @@ class Cache:
         self.conflict_misses = 0
         self.cycle_count = 0
         self.instruction_count = 0
+        self.instruction_bytes = 0
+        self.srcdst_bytes = 0
 
         # Calculate address bits
         self.offset_bits = int(math.log2(self.block_size))
@@ -111,10 +114,12 @@ class Cache:
             self.compulsory_misses += 1
         elif entry.valid is True and entry.tag != tag:
             self.conflict_misses += 1
+            
 
         entry.tag = tag
+        entry.offset = offset
         entry.dirty = is_write
-        self.cycle_count += 1 * math.ceil(self.block_size / 4)
+        self.cycle_count += (2 * math.ceil(self.block_size / 4))
 
         return False
 
@@ -125,9 +130,9 @@ class Cache:
 
         print("\n***** CACHE SIMULATION RESULTS *****\n")
         # Double check addresses
-        print(f"Total Cache Accesses:\t{total_accesses}\t({0} addresses)")
+        print(f"Total Cache Accesses:\t{total_accesses}\t({total_accesses} addresses)")
         # Double check math on this, copilot did it
-        print(f"Instruction Bytes:\t{self.hits * 4}\tSrcDst Bytes:\t{self.hits * 8}")
+        print(f"Instruction Bytes:\t{self.instruction_bytes}\tSrcDst Bytes:\t{self.srcdst_bytes* 4}")
         print(f"Cache Hits:\t\t{self.hits}")
         print(f"Cahce Misses:\t\t{self.misses}")
         print(f"Compulsory Misses:\t{self.compulsory_misses}")
@@ -136,14 +141,13 @@ class Cache:
         print(f"Hit Rate:\t\t{hit_rate:.2f}%")
         print(f"Miss Rate:\t\t{100-hit_rate:.2f}%")
         print(
+         
             f"CPI:\t\t\t{1 + (self.cycle_count / self.instruction_count):.2f} Cycles/Instruction ({self.instruction_count})"
         )
         print(
             f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + ((self.tag_bits + 1)/8))) / 1024:.2f} KB / {self.cache_size:.2f}KB"
         )
-        print(
-            f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}"
-        )
+        print(f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}")
 
 
 class PageTable:
@@ -244,9 +248,6 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     """Process a single trace file."""
     try:
         with open(filename, "r") as f:
-            count = 0
-            eipCount = 0
-            writeReadCount = 0
             for line in f:
                 if line == "\n":
                     continue
@@ -255,16 +256,16 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                 else:
                     parts = line.strip().split("\n")
                     line = parts[0]
-                    # print(line, "\n")
+
                     eip = re.search(r"EIP \(([0-9]+)\):\s([a-zA-Z0-9]+)", line)
 
                     if eip:
                         len = eip.group(1)
                         register = eip.group(2)
                         cache.cycle_count += 1
-                        cache.instruction_count += 1
-                        eipCount += 1
-                        # print("EIP count: ", eipCount)
+                        cache.instruction_count += 1   
+                        cache.access(int(register, 16), False)
+                        cache.instruction_bytes += (int(len))
                     else:
                         dataLine = re.search(
                             r"dstM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+\s*srcM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+",
@@ -272,13 +273,13 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                         )
                         write = int(dataLine.group(1), 16)
                         read = int(dataLine.group(2), 16)
-                        cache.access(write, True)
-                        cache.access(read, False)
-                        writeReadCount += 1
-                        # print("Write/Read count: ", writeReadCount)
-                    count += 1
-
-            print(count)
+                        if(write != 0):
+                            cache.access(write, True)
+                            cache.srcdst_bytes += 1
+                        if(read != 0):
+                            cache.access(read, False)
+                            cache.srcdst_bytes += 1
+                      
 
     except FileNotFoundError:
         print(f"Error: Could not open trace file {filename}")

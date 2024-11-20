@@ -1,0 +1,20 @@
+ chrus   master  …  Downloads  CachingProject  Computer_Architecture_Project  python3 cache_simulator.py -s 512 -b 16 -a 4 -r rr -p 1024 -u 75 -n 100 -f TestTrace.trc
+
+Processing trace file 1: TestTrace.trc
+
+***** CACHE SIMULATION RESULTS *****
+
+Total Cache Accesses:   92      (0 addresses)
+Instruction Bytes:      348     SrcDst Bytes:   696
+Cache Hits:             87
+Cahce Misses:           5
+Compulsory Misses:      5
+Conflict Misses:        0
+
+***** ***** CACHE HIT & MISS RATE: ***** *****
+
+Hit Rate:               94.57%
+Miss Rate:              5.43%
+CPI:                    4.33 Cycles/Instruction (46)
+Unused Cache Space:     615.91 KB / 512.00KB
+Unused Cache Blocks:    32763 / 32768
