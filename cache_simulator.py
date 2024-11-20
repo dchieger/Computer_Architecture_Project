@@ -48,10 +48,11 @@ class Cache:
         self.associativity = config.associativity
         self.round_robin = config.replacement_policy == "rr"
         self.cache_size = config.cache_size
-        self.total_blocks = self.cache_size // self.block_size
+        self.total_rows = (self.cache_size * 1024) // (self.block_size * self.associativity)
+        self.total_blocks = self.total_rows * self.associativity
 
         # Calculate number of sets
-        self.num_sets = (config.cache_size * 1024) // (
+        self.num_sets = (self.cache_size)  // (
             self.block_size * self.associativity
         )
         self.sets = [
@@ -59,7 +60,7 @@ class Cache:
         ]
 
         # Statistics
-        self.total_rows = self.total_blocks // self.associativity
+        
 
         # Calculate address bits
         self.offset_bits = int(math.log2(self.block_size))
@@ -70,7 +71,7 @@ class Cache:
         self.dirty_bit = 1
         self.overhead_per_block = self.valid_bit + self.dirty_bit + self.tag_bits
         self.total_overhead = (
-            self.overhead_per_block * self.total_blocks
+            (self.tag_bits + 1) * self.total_blocks
         ) // 8  # Convert to bytes
         self.hits = 0
         self.misses = 0
@@ -93,7 +94,7 @@ class Cache:
 
     def access(self, address: int, is_write: bool) -> bool:
         """Process a cache access. Returns True for hit, False for miss."""
-        tag, index, _ = self.get_address_components(address)
+        tag, index, offset = self.get_address_components(address)
 
         entry = self.sets[index].find_entry(tag)
         if entry is not None:
@@ -107,14 +108,16 @@ class Cache:
         entry = self.sets[index].get_replacement_entry(self.round_robin)
 
         if entry.valid is False:
+            entry.valid = True
             self.compulsory_misses += 1
         elif entry.valid is True and entry.tag != tag:
             self.conflict_misses += 1
-        entry.dirty = is_write
 
-        entry.valid = True
         entry.tag = tag
+        entry.offset = offset
         entry.dirty = is_write
+        self.cycle_count += (1 * math.ceil(self.block_size / 4))
+
         return False
 
     def print_stats(self):
@@ -135,12 +138,13 @@ class Cache:
         print(f"Hit Rate:\t\t{hit_rate:.2f}%")
         print(f"Miss Rate:\t\t{100-hit_rate:.2f}%")
         print(
+         
             f"CPI:\t\t\t{1 + (self.cycle_count / self.instruction_count):.2f} Cycles/Instruction ({self.instruction_count})"
         )
         print(
-            f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + self.total_overhead)) / 1024}KB"
+            f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + ((self.tag_bits + 1)/8))) / 1024:.2f} KB / {self.cache_size:.2f}KB"
         )
-        print(f"Unused Cache Blocks:\t{self.num_sets - self.misses - self.hits}")
+        print(f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}")
 
 
 class PageTable:
@@ -255,7 +259,7 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                     if eip:
                         len = eip.group(1)
                         register = eip.group(2)
-                        cache.cycle_count += 2
+                        cache.cycle_count += 1
                         cache.instruction_count += 1
                     else:
                         dataLine = re.search(
