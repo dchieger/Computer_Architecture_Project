@@ -47,6 +47,8 @@ class Cache:
         self.block_size = config.block_size
         self.associativity = config.associativity
         self.round_robin = config.replacement_policy == "rr"
+        self.cache_size = config.cache_size
+        self.total_blocks = self.cache_size // self.block_size
 
         # Calculate number of sets
         self.num_sets = (config.cache_size * 1024) // (
@@ -57,6 +59,19 @@ class Cache:
         ]
 
         # Statistics
+        self.total_rows = self.total_blocks // self.associativity
+
+        # Calculate address bits
+        self.offset_bits = int(math.log2(self.block_size))
+        self.index_bits = int(math.log2(self.total_rows))
+        self.tag_bits = 32 - self.offset_bits - self.index_bits
+       
+        self.valid_bit = 1
+        self.dirty_bit = 1
+        self.overhead_per_block = self.valid_bit + self.dirty_bit + self.tag_bits
+        self.total_overhead = (
+            self.overhead_per_block * self.total_blocks
+        ) // 8  # Convert to bytes
         self.hits = 0
         self.misses = 0
         self.compulsory_misses = 0
@@ -122,11 +137,10 @@ class Cache:
         print(
             f"CPI:\t\t\t{1 + (self.cycle_count / self.instruction_count):.2f} Cycles/Instruction ({self.instruction_count})"
         )
-        # print(
-        #     f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + self.overhead
-        #     _per_block)) / 1024}KB"
-        # )
-        # print(f"Unused Cache Blocks:\t{self.num_sets - self.misses - self.hits}")
+        print(
+            f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * (self.block_size + self.total_overhead)) / 1024}KB"
+        )
+        print(f"Unused Cache Blocks:\t{self.num_sets - self.misses - self.hits}")
 
 
 class PageTable:
