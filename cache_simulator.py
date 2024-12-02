@@ -102,7 +102,7 @@ class Cache:
         entry = self.sets[index].find_entry(tag)
         if entry is not None:
             self.hits += 1
-            self.cycle_count += 1
+            self.cycle_count += 2
             if is_write:
                 entry.dirty = True
             return True
@@ -118,7 +118,7 @@ class Cache:
 
         entry.tag = tag
         entry.dirty = is_write
-        self.cycle_count += 1 * math.ceil(self.block_size / 4)
+        self.cycle_count += (2 * math.ceil(self.block_size / 4)) 
 
         return False
 
@@ -163,7 +163,7 @@ class Cache:
 
         print("\n***** CACHE SIMULATION RESULTS *****\n")
         # Double check addresses
-        print(f"Total Cache Accesses:\t{total_accesses}\t({0} addresses)")
+        print(f"Total Cache Accesses:\t{total_accesses}\t({total_accesses} addresses)")
         # Double check math on this, copilot did it
         print(f"Instruction Bytes:\t{self.instruction_bytes}\tSrcDst Bytes:\t{self.srcdst_bytes* 4}")
         print(f"Cache Hits:\t\t{self.hits}")
