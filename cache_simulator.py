@@ -181,6 +181,9 @@ class Cache:
             f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}"
         )
 
+        print("/n ***() PHYSICAL MEMORY SIMULATION RESULTS **** \n")
+        print("Pysical Pages Used By System:  ${self.num_system_pages}")
+
 
 class PageTable:
     def __init__(self, phys_mem_size: int):
