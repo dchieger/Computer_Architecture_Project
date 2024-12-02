@@ -80,6 +80,8 @@ class Cache:
         self.conflict_misses = 0
         self.cycle_count = 0
         self.instruction_count = 0
+        self.instruction_bytes = 0
+        self.srcdst_bytes = 0
 
         # Calculate address bits
         self.offset_bits = int(math.log2(self.block_size))
@@ -163,7 +165,7 @@ class Cache:
         # Double check addresses
         print(f"Total Cache Accesses:\t{total_accesses}\t({0} addresses)")
         # Double check math on this, copilot did it
-        print(f"Instruction Bytes:\t{self.hits * 4}\tSrcDst Bytes:\t{self.hits * 8}")
+        print(f"Instruction Bytes:\t{self.instruction_bytes}\tSrcDst Bytes:\t{self.srcdst_bytes* 4}")
         print(f"Cache Hits:\t\t{self.hits}")
         print(f"Cahce Misses:\t\t{self.misses}")
         print(f"Compulsory Misses:\t{self.compulsory_misses}")
@@ -181,8 +183,9 @@ class Cache:
             f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}"
         )
 
-        print("/n ***() PHYSICAL MEMORY SIMULATION RESULTS **** \n")
-        print("Pysical Pages Used By System:  ${self.num_system_pages}")
+        print(f"\n ***() PHYSICAL MEMORY SIMULATION RESULTS **** \n")
+        print(f"Pysical Pages Used By SYSTEM: \t{self.num_system_pages}")
+        print(f"Pages Available to User: \t{self.num_physical_pages - self.num_system_pages}")
 
 
 class PageTable:
@@ -283,27 +286,21 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     """Process a single trace file."""
     try:
         with open(filename, "r") as f:
-            count = 0
-            eipCount = 0
-            writeReadCount = 0
             for line in f:
                 if line == "\n":
                     continue
-                # Assuming trace format is: "address operation"
-                # Modify this based on your actual trace file format
                 else:
                     parts = line.strip().split("\n")
                     line = parts[0]
-                    # print(line, "\n")
                     eip = re.search(r"EIP \(([0-9]+)\):\s([a-zA-Z0-9]+)", line)
 
                     if eip:
                         len = eip.group(1)
                         register = eip.group(2)
                         cache.cycle_count += 1
-                        cache.instruction_count += 1
-                        eipCount += 1
-                        # print("EIP count: ", eipCount)
+                        cache.instruction_count += 1   
+                        cache.access(int(register, 16), False)
+                        cache.instruction_bytes += (int(len))
                     else:
                         dataLine = re.search(
                             r"dstM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+\s*srcM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+",
@@ -311,13 +308,14 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                         )
                         write = int(dataLine.group(1), 16)
                         read = int(dataLine.group(2), 16)
-                        cache.access(write, True)
-                        cache.access(read, False)
-                        writeReadCount += 1
-                        # print("Write/Read count: ", writeReadCount)
-                    count += 1
+                        if(write != 0):
+                            cache.access(write, True)
+                            cache.srcdst_bytes += 1
+                        if(read != 0):
+                            cache.access(read, False)
+                            cache.srcdst_bytes += 1
+                      
 
-            print(count)
 
     except FileNotFoundError:
         print(f"Error: Could not open trace file {filename}")
