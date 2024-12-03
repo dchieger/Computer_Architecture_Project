@@ -197,6 +197,9 @@ class Cache:
         print(f"Pages from Free: {self.misses}\n")
         print("Total Page Faults: \n")
 
+        print("\n **** Page Table Usage Per Process **** \n")
+
+
 
 class PageTable:
     def __init__(self, phys_mem_size: int):
@@ -285,7 +288,7 @@ def parse_arguments():
     parser.add_argument(
         "-f",
         "--trace-files",
-        nargs="+",
+        action="append",
         required=True,
         help="Trace files (1 to 3 files)",
     )
@@ -294,6 +297,7 @@ def parse_arguments():
 
 def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     """Process a single trace file."""
+    pgCount = 0;
     try:
         with open(filename, "r") as f:
             for line in f:
@@ -321,9 +325,13 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                         if write != 0:
                             cache.access(write, True)
                             cache.srcdst_bytes += 1
+                            pgCount += 1
+                            page_table.translate(write)
                         if read != 0:
                             cache.access(read, False)
                             cache.srcdst_bytes += 1
+                            pgCount += 1
+                            page_table.translate(read)
 
     except FileNotFoundError:
         print(f"Error: Could not open trace file {filename}")
@@ -357,9 +365,12 @@ def main():
         print(f"\nProcessing trace file {i+1}: {trace_file}")
         process_manager.add_process(i)
         process_trace_file(trace_file, cache, process_manager.processes[i])
-
     # Print final statistics
     cache.print_stats()
+    for j, trace_file in enumerate(args.trace_files):
+            print(f"[{j}]{trace_file}: \n")
+            print(f"Used Page Table Entries: {len(process_manager.processes[j].page_table)}")
+            print(f"Page Table Wasted: {process_manager.phys_mem.num_pages - len(process_manager.processes[j].page_table)}")
 
 
 if __name__ == "__main__":
