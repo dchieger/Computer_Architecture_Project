@@ -118,7 +118,7 @@ class Cache:
 
         entry.tag = tag
         entry.dirty = is_write
-        self.cycle_count += (2 * math.ceil(self.block_size / 4)) 
+        self.cycle_count += 2 * math.ceil(self.block_size / 4)
 
         return False
 
@@ -163,9 +163,12 @@ class Cache:
 
         print("\n***** CACHE SIMULATION RESULTS *****\n")
         # Double check addresses
-        print(f"Total Cache Accesses:\t{total_accesses}\t({total_accesses} addresses)")
-        # Double check math on this, copilot did it
-        print(f"Instruction Bytes:\t{self.instruction_bytes}\tSrcDst Bytes:\t{self.srcdst_bytes* 4}")
+        print(
+            f"Total Cache Accesses:\t{total_accesses + self.offset_bits}\t({total_accesses} addresses)"
+        )
+        print(
+            f"Instruction Bytes:\t{self.instruction_bytes}\tSrcDst Bytes:\t{self.srcdst_bytes* 4}"
+        )
         print(f"Cache Hits:\t\t{self.hits}")
         print(f"Cahce Misses:\t\t{self.misses}")
         print(f"Compulsory Misses:\t{self.compulsory_misses}")
@@ -177,15 +180,22 @@ class Cache:
             f"CPI:\t\t\t{1 + (self.cycle_count / self.instruction_count):.2f} Cycles/Instruction ({self.instruction_count})"
         )
         print(
-            f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * ((self.block_size) + ((self.total_overhead)))) // 1024:.2f} KB / {self.cache_size / 1024:.2f}KB"
+            f"Unused Cache Space:\t{((self.total_blocks - self.compulsory_misses) * ((self.block_size) + ((self.total_overhead /1024/1024) - 1))) // 1024:.2f} KB / {self.cache_size / 1024:.2f}KB"
         )
         print(
             f"Unused Cache Blocks:\t{self.total_blocks - self.compulsory_misses} / {self.total_blocks}"
         )
 
-        print(f"\n ***() PHYSICAL MEMORY SIMULATION RESULTS **** \n")
+        print("\n **** PHYSICAL MEMORY SIMULATION RESULTS **** \n")
         print(f"Pysical Pages Used By SYSTEM: \t{self.num_system_pages}")
-        print(f"Pages Available to User: \t{self.num_physical_pages - self.num_system_pages}")
+        print(
+            f"Pages Available to User: \t{self.num_physical_pages - self.num_system_pages}"
+        )
+        print(f"Virtual Pages Mapped: {total_accesses}")
+        print("-------------------------------")
+        print(f"Page Table Hits: {self.hits}\n")
+        print(f"Pages from Free: {self.misses}\n")
+        print("Total Page Faults: \n")
 
 
 class PageTable:
@@ -298,9 +308,9 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                         len = eip.group(1)
                         register = eip.group(2)
                         cache.cycle_count += 1
-                        cache.instruction_count += 1   
+                        cache.instruction_count += 1
                         cache.access(int(register, 16), False)
-                        cache.instruction_bytes += (int(len))
+                        cache.instruction_bytes += int(len)
                     else:
                         dataLine = re.search(
                             r"dstM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+\s*srcM: ([0-9a-zA-Z-]+) [0-9a-zA-Z-]+",
@@ -308,14 +318,12 @@ def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
                         )
                         write = int(dataLine.group(1), 16)
                         read = int(dataLine.group(2), 16)
-                        if(write != 0):
+                        if write != 0:
                             cache.access(write, True)
                             cache.srcdst_bytes += 1
-                        if(read != 0):
+                        if read != 0:
                             cache.access(read, False)
                             cache.srcdst_bytes += 1
-                      
-
 
     except FileNotFoundError:
         print(f"Error: Could not open trace file {filename}")
