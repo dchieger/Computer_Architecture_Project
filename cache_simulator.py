@@ -297,7 +297,7 @@ def parse_arguments():
 
 def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     """Process a single trace file."""
-    pgCount = 0;
+    pgCount = 0
     try:
         with open(filename, "r") as f:
             for line in f:
