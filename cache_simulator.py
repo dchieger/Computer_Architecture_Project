@@ -123,6 +123,7 @@ class Cache:
         return False
 
     def print_stats(self):
+        args = parse_arguments()
         """Print cache statistics."""
         total_accesses = self.hits + self.misses
         hit_rate = (self.hits / total_accesses * 100) if total_accesses > 0 else 0
@@ -131,9 +132,7 @@ class Cache:
         self.num_physical_pages = self.phys_mem // self.page_size
         self.num_system_pages = (self.num_physical_pages * self.mem_used_percent) // 100
         self.page_table_entry_size = 4  # 32 bits = 4 bytes
-        self.total_page_table_size = (
-            self.num_physical_pages * self.page_table_entry_size
-        )
+        self.total_page_table_size = self.cache_size * len(args.trace_files) * 19 / 8
 
         print("\n\n***** Cache Input Parameters *****\n\n")
         print(f"Cache Size: {self.cache_size // 1024}KB")
@@ -187,7 +186,7 @@ class Cache:
         )
 
         print("\n **** PHYSICAL MEMORY SIMULATION RESULTS **** \n")
-        print(f"Pysical Pages Used By SYSTEM: \t{self.num_system_pages}")
+        print(f"Physical Pages Used By SYSTEM: \t{self.num_system_pages}")
         print(
             f"Pages Available to User: \t{self.num_physical_pages - self.num_system_pages}"
         )
@@ -195,10 +194,9 @@ class Cache:
         print("-------------------------------")
         print(f"Page Table Hits: {self.hits}\n")
         print(f"Pages from Free: {self.misses}\n")
-        print("Total Page Faults: \n")
+        print(f"Page Table Faults: {self.conflict_misses}\n")
 
         print("\n **** Page Table Usage Per Process **** \n")
-
 
 
 class PageTable:
@@ -297,7 +295,7 @@ def parse_arguments():
 
 def process_trace_file(filename: str, cache: Cache, page_table: PageTable):
     """Process a single trace file."""
-    pgCount = 0;
+    pgCount = 0
     try:
         with open(filename, "r") as f:
             for line in f:
@@ -368,9 +366,13 @@ def main():
     # Print final statistics
     cache.print_stats()
     for j, trace_file in enumerate(args.trace_files):
-            print(f"[{j}]{trace_file}: \n")
-            print(f"Used Page Table Entries: {len(process_manager.processes[j].page_table)}")
-            print(f"Page Table Wasted: {process_manager.phys_mem.num_pages - len(process_manager.processes[j].page_table)}")
+        print(f"[{j}]{trace_file}: \n")
+        print(
+            f"Used Page Table Entries: {len(process_manager.processes[j].page_table) }"
+        )
+        print(
+            f"Page Table Wasted: {process_manager.phys_mem.num_pages - len(process_manager.processes[j].page_table)}"
+        )
 
 
 if __name__ == "__main__":

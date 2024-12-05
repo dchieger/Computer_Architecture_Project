@@ -1,0 +1,77 @@
+Processing trace file 1: TestTrace.trc
+
+Processing trace file 2: TinyTrace.trc
+
+
+***** Cache Input Parameters *****
+
+
+Cache Size: 512KB
+Block Size: 16 bytes
+Associativity: 4
+Replacement Policy: RR
+Physical Memory: 1024MB
+Percent Memory Used by System: 75%
+Instructions / Time Slice: 100
+
+
+***** Cache Calculated Values *****
+
+
+Total # Blocks: 32768
+Tag Size: 15 bits
+Index Size: 13 bits
+Total # Rows: 8192
+Overhead Size: 65536 bytes
+Implementation Memory Size: 576 bytes
+Cost: $86.40
+
+
+***** Physical Memory Calculated Values ***** 
+
+
+Number of Physical Pages: 262144
+Number of Pages for System: 196608
+Size of Page Table Entry: 4 bytes
+Total RAM for Page Table(s): 1048576 bytes
+
+***** CACHE SIMULATION RESULTS *****
+
+Total Cache Accesses:   68      (64 addresses)
+Instruction Bytes:      140     SrcDst Bytes:   36
+Cache Hits:             47
+Cahce Misses:           17
+Compulsory Misses:      17
+Conflict Misses:        0
+
+***** ***** CACHE HIT & MISS RATE: ***** *****
+
+Hit Rate:               73.44%
+Miss Rate:              26.56%
+CPI:                    6.18 Cycles/Instruction (55)
+Unused Cache Space:     481.00 KB / 512.00KB
+Unused Cache Blocks:    32751 / 32768
+
+ **** PHYSICAL MEMORY SIMULATION RESULTS **** 
+
+Pysical Pages Used By SYSTEM:   196608
+Pages Available to User:        65536
+Virtual Pages Mapped: 64
+-------------------------------
+Page Table Hits: 47
+
+Pages from Free: 17
+
+Total Page Faults: 
+
+
+ **** Page Table Usage Per Process **** 
+
+[0]TestTrace.trc: 
+
+Used Page Table Entries: 3
+Page Table Wasted: 262141
+[1]TinyTrace.trc: 
+
+Used Page Table Entries: 0
+Page Table Wasted: 262144
