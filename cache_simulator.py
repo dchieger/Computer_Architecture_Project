@@ -194,9 +194,6 @@ class Cache:
         print("-------------------------------")
         print(f"Page Table Hits: {self.hits}\n")
         print(f"Pages from Free: {self.misses}\n")
-        print(f"Page Table Faults: {self.conflict_misses}\n")
-
-        print("\n **** Page Table Usage Per Process **** \n")
 
 
 class PageTable:
@@ -205,6 +202,7 @@ class PageTable:
         self.num_pages = phys_mem_size * 1024 * 1024 // self.page_size
         self.page_table = {}
         self.next_frame = 0
+        self.page_faults = 0
 
     def translate(self, virtual_addr: int) -> Optional[int]:
         """Translate virtual address to physical address."""
@@ -213,7 +211,17 @@ class PageTable:
 
         if page_number not in self.page_table:
             if self.next_frame >= self.num_pages:
+                # Randomly select a page to evict
+                page_number = random.choice(list(self.page_table.keys()))
+                page_number = self.page_table.pop(page_number)
+                # keep track of page faults
                 return None  # Out of physical memory
+            if None in self.page_table.values():
+                for i in range(self.num_pages):
+                    if i not in self.page_table.values():
+                        self.page_table[page_number] = i
+                        self.page_faults += 1
+                        break
             self.page_table[page_number] = self.next_frame
             self.next_frame += 1
 
@@ -365,6 +373,8 @@ def main():
         process_trace_file(trace_file, cache, process_manager.processes[i])
     # Print final statistics
     cache.print_stats()
+    print(f"Page Table Faults: {process_manager.phys_mem.page_faults}\n")
+    print("\n **** Page Table Usage Per Process **** \n")
     for j, trace_file in enumerate(args.trace_files):
         print(f"[{j}]{trace_file}: \n")
         print(
